@@ -86,8 +86,19 @@ namespace DbMetaTool
             // 2) Wczytaj i wykonaj kolejno skrypty z katalogu scriptsDirectory
             //    (tylko domeny, tabele, procedury).
             // 3) Obsłuż błędy i wyświetl raport.
+            // 1. Upewnij się, że katalog istnieje
 
-            throw new NotImplementedException();
+            if (!Directory.Exists(databaseDirectory))
+            {
+                Directory.CreateDirectory(databaseDirectory);
+            }
+
+            // 2. Sklej ścieżkę do pliku
+            string dbFilePath = Path.Combine(databaseDirectory, "GeneratedDb.fdb");
+
+            // 3. Wywołaj nasz serwis DatabaseBuilder
+            IDatabaseBuilder builder = new DatabaseBuilder();
+            builder.BuildDatabase(dbFilePath, scriptsDirectory);
         }
 
         /// <summary>
@@ -113,7 +124,9 @@ namespace DbMetaTool
             // 1) Połącz się z bazą danych przy użyciu connectionString.
             // 2) Wykonaj skrypty z katalogu scriptsDirectory (tylko obsługiwane elementy).
             // 3) Zadbaj o poprawną kolejność i bezpieczeństwo zmian.
-            throw new NotImplementedException();
+
+            IDatabaseUpdater updater = new DatabaseUpdater();
+            updater.UpdateDatabase(connectionString, scriptsDirectory);
         }
     }
 }
