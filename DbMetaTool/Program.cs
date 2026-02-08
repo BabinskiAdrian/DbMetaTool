@@ -93,10 +93,8 @@ namespace DbMetaTool
                 Directory.CreateDirectory(databaseDirectory);
             }
 
-            // 2. Sklej ścieżkę do pliku
             string dbFilePath = Path.Combine(databaseDirectory, "GeneratedDb.fdb");
 
-            // 3. Wywołaj nasz serwis DatabaseBuilder
             IDatabaseBuilder builder = new DatabaseBuilder();
             builder.BuildDatabase(dbFilePath, scriptsDirectory);
         }

@@ -23,7 +23,7 @@ public class DatabaseBuilder : IDatabaseBuilder
     {
         Console.WriteLine($"[INFO] Rozpoczynam budowanie bazy: {databasePath}");
 
-        // 1. Tworzenie pustego pliku bazy danych
+        // Tworzenie pustego pliku bazy danych
         CreateEmptyDatabase(databasePath);
 
         string connectionString = BuildConnectionString(databasePath);
@@ -32,7 +32,7 @@ public class DatabaseBuilder : IDatabaseBuilder
         {
             conn.Open();
 
-            // 3. Wykonywanie skryptów w odpowiedniej kolejności
+            // Wykonywanie skryptów w odpowiedniej kolejności
             RunScriptsFromFolder(conn, scriptsDirectory, FolderDomains);
             RunScriptsFromFolder(conn, scriptsDirectory, FolderTables);
             RunScriptsFromFolder(conn, scriptsDirectory, FolderProcedures);
@@ -63,7 +63,7 @@ public class DatabaseBuilder : IDatabaseBuilder
         FbConnection.CreateDatabase(createCs);
     }
 
-    private void RunScriptsFromFolder(FbConnection conn, string baseDir, string folderName)
+    private static void RunScriptsFromFolder(FbConnection conn, string baseDir, string folderName)
     {
         string dirPath = Path.Combine(baseDir, folderName);
 

@@ -5,9 +5,23 @@ namespace DbMetaTool.Services;
 
 public class DatabaseUpdater : IDatabaseUpdater
 {
+    // Stałe nazw folderów
     private const string FolderDomains = "Domains";
     private const string FolderTables = "Tables";
     private const string FolderProcedures = "Procedures";
+
+    // Stałe zapytań SQL
+    private const string SqlCheckDomainExists =
+        "SELECT COUNT(*) FROM RDB$FIELDS WHERE RDB$FIELD_NAME = @Name";
+
+    private const string SqlCheckTableExists =
+        "SELECT COUNT(*) FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = @Name AND RDB$SYSTEM_FLAG = 0";
+
+    private const string SqlGetExistingColumns =
+        "SELECT TRIM(RDB$FIELD_NAME) FROM RDB$RELATION_FIELDS WHERE RDB$RELATION_NAME = @TableName";
+
+    // Pomocnicza struktura do przechowywania informacji o kolumnie
+    sealed record ColumnInfo(string Name, string FullDefinition);
 
     public void UpdateDatabase(string connectionString, string scriptsDirectory)
     {
@@ -29,7 +43,7 @@ public class DatabaseUpdater : IDatabaseUpdater
         Console.WriteLine("[SUKCES] Aktualizacja zakończona.");
     }
 
-    private void UpdateDomains(FbConnection conn, string scriptsDir)
+    private static void UpdateDomains(FbConnection conn, string scriptsDir)
     {
         string dirPath = Path.Combine(scriptsDir, FolderDomains);
         if (!Directory.Exists(dirPath)) return;
@@ -41,7 +55,7 @@ public class DatabaseUpdater : IDatabaseUpdater
             string domainName = Path.GetFileNameWithoutExtension(file);
 
             // Sprawdź, czy domena istnieje
-            if (!ObjectExists(conn, domainName, "RDB$FIELDS"))
+            if (!EntityExists(conn, SqlCheckDomainExists, domainName))
             {
                 Console.WriteLine($" -> Dodawanie nowej domeny: {domainName}");
                 ExecuteSql(conn, script);
@@ -49,7 +63,30 @@ public class DatabaseUpdater : IDatabaseUpdater
         }
     }
 
-    private void UpdateProcedures(FbConnection conn, string scriptsDir)
+    private static void UpdateTables(FbConnection conn, string scriptsDir)
+    {
+        string dirPath = Path.Combine(scriptsDir, FolderTables);
+        if (!Directory.Exists(dirPath)) return;
+
+        var files = Directory.GetFiles(dirPath, "*.sql");
+        foreach (var file in files)
+        {
+            string script = File.ReadAllText(file);
+            string tableName = Path.GetFileNameWithoutExtension(file);
+
+            if (!EntityExists(conn, SqlCheckTableExists, tableName))
+            {
+                Console.WriteLine($" -> Tworzenie nowej tabeli: {tableName}");
+                ExecuteSql(conn, script);
+            }
+            else
+            {
+                UpdateTableColumns(conn, tableName, script);
+            }
+        }
+    }
+
+    private static void UpdateProcedures(FbConnection conn, string scriptsDir)
     {
         string dirPath = Path.Combine(scriptsDir, FolderProcedures);
         if (!Directory.Exists(dirPath)) return;
@@ -61,100 +98,57 @@ public class DatabaseUpdater : IDatabaseUpdater
             string procName = Path.GetFileNameWithoutExtension(file);
 
             Console.WriteLine($" -> Aktualizacja procedury: {procName}");
-            // Tutaj jest łatwo: CREATE OR ALTER załatwia sprawę
+
             ExecuteSql(conn, script);
         }
     }
 
-    private void UpdateTables(FbConnection conn, string scriptsDir)
+    private static void UpdateTableColumns(FbConnection conn, string tableName, string script)
     {
-        string dirPath = Path.Combine(scriptsDir, FolderTables);
-        if (!Directory.Exists(dirPath)) return;
-
-        var files = Directory.GetFiles(dirPath, "*.sql");
-        foreach (var file in files)
-        {
-            string script = File.ReadAllText(file);
-            string tableName = Path.GetFileNameWithoutExtension(file);
-
-            if (!ObjectExists(conn, tableName, "RDB$RELATIONS"))
-            {
-                // Tabela nie istnieje -> Tworzymy całą
-                Console.WriteLine($" -> Tworzenie nowej tabeli: {tableName}");
-                ExecuteSql(conn, script);
-            }
-            else
-            {
-                // Tabela istnieje -> Sprawdzamy brakujące kolumny
-                UpdateTableColumns(conn, tableName, script);
-            }
-        }
-    }
-
-    private void UpdateTableColumns(FbConnection conn, string tableName, string script)
-    {
-        // 1. Parsujemy skrypt, żeby wyciągnąć definicje kolumn
-        // Szukamy linii w stylu: "   COLUMN_NAME TYPE..."
+        // Parsujemy skrypt, żeby wyciągnąć definicje kolumn
         var columnsInScript = ParseColumnsFromScript(script);
 
-        // 2. Pobieramy istniejące kolumny z bazy
+        // Pobieramy istniejące kolumny z bazy
         var existingColumns = GetExistingColumns(conn, tableName);
 
-        foreach (var col in columnsInScript)
-        {
-            if (!existingColumns.Contains(col.Name.ToUpper()))
+        // UWAGA: rozważyć pod co zoptymalizować.
+        var columnsToAdd = columnsInScript
+            .Where(c => !existingColumns.Contains(c.Name.ToUpper()))
+            .ToList(); // !Materializacja
+
+        foreach (var col in columnsToAdd)
+        { 
+            Console.WriteLine($"    -> [UPDATE] Dodawanie kolumny {col.Name} do tabeli {tableName}");
+
+            // Budujemy ALTER TABLE
+            string alterSql = $"ALTER TABLE {tableName} ADD {col.FullDefinition}";
+
+            try
             {
-                Console.WriteLine($"    -> [UPDATE] Dodawanie kolumny {col.Name} do tabeli {tableName}");
-
-                // Budujemy ALTER TABLE
-                // Uwaga: col.FullDefinition zawiera np. "EMAIL VARCHAR(100)"
-                // My potrzebujemy: ALTER TABLE CUSTOMERS ADD EMAIL VARCHAR(100)
-
-                string alterSql = $"ALTER TABLE {tableName} ADD {col.FullDefinition}";
-
-                try
-                {
-                    ExecuteSql(conn, alterSql);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[WARN] Nie udało się dodać kolumny {col.Name}: {ex.Message}");
-                }
+                ExecuteSql(conn, alterSql);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARN] Nie udało się dodać kolumny {col.Name}: {ex.Message}");
             }
         }
     }
 
-    // --- Metody Pomocnicze ---
-
-    private bool ObjectExists(FbConnection conn, string name, string sysTable)
+    private static bool EntityExists(FbConnection conn, string sql, string name)
     {
-        // Uniwersalna metoda do sprawdzania czy coś istnieje w RDB$FIELDS lub RDB$RELATIONS
-        string nameCol = sysTable == "RDB$RELATIONS" ? "RDB$RELATION_NAME" : "RDB$FIELD_NAME";
-
-        // W Firebird nazwy obiektów systemowych są 'case sensitive' jeśli nie używamy cudzysłowów, 
-        // ale standardowo są UPPERCASE.
-        string sql = $"SELECT COUNT(*) FROM {sysTable} WHERE {nameCol} = @Name";
-
-        // Ważne: Wykluczamy tabele systemowe (dla RDB$RELATIONS)
-        if (sysTable == "RDB$RELATIONS")
-        {
-            sql += " AND RDB$SYSTEM_FLAG = 0";
-        }
-
         using (var cmd = new FbCommand(sql, conn))
         {
             cmd.Parameters.AddWithValue("@Name", name.ToUpper());
-            int count = Convert.ToInt32(cmd.ExecuteScalar());
-            return count > 0;
+            var result = cmd.ExecuteScalar();
+            return result != null && Convert.ToInt32(result) > 0;
         }
     }
 
-    private HashSet<string> GetExistingColumns(FbConnection conn, string tableName)
+    private static HashSet<string> GetExistingColumns(FbConnection conn, string tableName)
     {
         var cols = new HashSet<string>();
-        string sql = "SELECT TRIM(RDB$FIELD_NAME) FROM RDB$RELATION_FIELDS WHERE RDB$RELATION_NAME = @TableName";
 
-        using (var cmd = new FbCommand(sql, conn))
+        using (var cmd = new FbCommand(SqlGetExistingColumns, conn))
         {
             cmd.Parameters.AddWithValue("@TableName", tableName.ToUpper());
             using (var reader = cmd.ExecuteReader())
@@ -168,7 +162,7 @@ public class DatabaseUpdater : IDatabaseUpdater
         return cols;
     }
 
-    private void ExecuteSql(FbConnection conn, string sql)
+    private static void ExecuteSql(FbConnection conn, string sql)
     {
         using (var cmd = new FbCommand(sql, conn))
         {
@@ -176,10 +170,7 @@ public class DatabaseUpdater : IDatabaseUpdater
         }
     }
 
-    // Prosta klasa wewnętrzna
-    private class ColumnInfo { public string Name; public string FullDefinition; }
-
-    private List<ColumnInfo> ParseColumnsFromScript(string script)
+    private static List<ColumnInfo> ParseColumnsFromScript(string script)
     {
         var list = new List<ColumnInfo>();
 
@@ -191,24 +182,25 @@ public class DatabaseUpdater : IDatabaseUpdater
             string trimmed = line.Trim();
 
             // Pomijamy linie "CREATE TABLE", nawiasy, puste itp.
-            if (trimmed.StartsWith("CREATE TABLE") || trimmed == "(" || trimmed == ");" || trimmed == ")")
+            if (trimmed.StartsWith("CREATE TABLE") 
+                || trimmed == "(" 
+                || trimmed == ");" 
+                || trimmed == ")")
+            { 
                 continue;
+            }
 
             // Usuwamy ewentualny przecinek na końcu linii
-            if (trimmed.EndsWith(","))
+            if (trimmed.EndsWith(','))
+            { 
                 trimmed = trimmed.Substring(0, trimmed.Length - 1);
+            }
 
             // Parsowanie: Pierwsze słowo to nazwa kolumny, reszta to definicja
-            // Np. "FIRST_NAME VARCHAR(50)" -> Name="FIRST_NAME", Def="FIRST_NAME VARCHAR(50)"
-
             var parts = trimmed.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length >= 2)
             {
-                list.Add(new ColumnInfo
-                {
-                    Name = parts[0],
-                    FullDefinition = trimmed // Cała linia to definicja kolumny
-                });
+                list.Add(new ColumnInfo(parts[0], trimmed));
             }
         }
         return list;
