@@ -1,8 +1,25 @@
 {
   "profiles": {
-    "DbMetaTool": {
+    "Export": {
       "commandName": "Project",
-      "commandLineArgs": "update-db --connection-string \"User=SYSDBA;Password=senteTask1!;Database=localhost:D:\\Sente\\GeneratedDb.fdb;Dialect=3;Charset=UTF8;\" --scripts-dir \"C:\\SenteOutput\""
+      "commandLineArgs": "export-scripts --connection-string \"User=SYSDBA;Password=%DB_PASSWORD%;Database=localhost:C:\\Db\\Work.fdb;Dialect=3;Charset=UTF8;\" --output-dir \"C:\\DbScripts\"",
+      "workingDirectory": "$(ProjectDir)",
+      "environmentVariables": {
+        "DB_PASSWORD": "masterkey"
+      }
+    },
+    "Build": {
+      "commandName": "Project",
+      "commandLineArgs": "build-db --db-dir \"C:\\Db\\Generated\" --scripts-dir \"C:\\DbScripts\"",
+      "workingDirectory": "$(ProjectDir)"
+    },
+    "Update": {
+      "commandName": "Project",
+      "commandLineArgs": "update-db --connection-string \"User=SYSDBA;Password=%DB_PASSWORD%;Database=localhost:C:\\Db\\Prod.fdb;Dialect=3;Charset=UTF8;\" --scripts-dir \"C:\\DbScripts\"",
+      "workingDirectory": "$(ProjectDir)",
+      "environmentVariables": {
+        "DB_PASSWORD": "masterkey"
+      }
     }
   }
 }
