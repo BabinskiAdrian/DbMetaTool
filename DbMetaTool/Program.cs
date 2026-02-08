@@ -5,10 +5,6 @@ namespace DbMetaTool
 {
     public static class Program
     {
-        // Przykładowe wywołania:
-        // DbMetaTool build-db --db-dir "C:\db\fb5" --scripts-dir "C:\scripts"
-        // DbMetaTool export-scripts --connection-string "..." --output-dir "C:\out"
-        // DbMetaTool update-db --connection-string "..." --scripts-dir "C:\scripts"
         public static int Main(string[] args)
         {
             if (args.Length == 0)
@@ -81,13 +77,6 @@ namespace DbMetaTool
         /// </summary>
         public static void BuildDatabase(string databaseDirectory, string scriptsDirectory)
         {
-            // TODO:
-            // 1) Utwórz pustą bazę danych FB 5.0 w katalogu databaseDirectory.
-            // 2) Wczytaj i wykonaj kolejno skrypty z katalogu scriptsDirectory
-            //    (tylko domeny, tabele, procedury).
-            // 3) Obsłuż błędy i wyświetl raport.
-            // 1. Upewnij się, że katalog istnieje
-
             if (!Directory.Exists(databaseDirectory))
             {
                 Directory.CreateDirectory(databaseDirectory);
@@ -104,11 +93,6 @@ namespace DbMetaTool
         /// </summary>
         public static void ExportScripts(string connectionString, string outputDirectory)
         {
-            // TODO:
-            // 1) Połącz się z bazą danych przy użyciu connectionString.
-            // 2) Pobierz metadane domen, tabel (z kolumnami) i procedur.
-            // 3) Wygeneruj pliki .sql / .json / .txt w outputDirectory.
-
             IMetadataService service = new MetadataService();
             service.ExportDatabase(connectionString, outputDirectory);
         }
@@ -118,11 +102,6 @@ namespace DbMetaTool
         /// </summary>
         public static void UpdateDatabase(string connectionString, string scriptsDirectory)
         {
-            // TODO:
-            // 1) Połącz się z bazą danych przy użyciu connectionString.
-            // 2) Wykonaj skrypty z katalogu scriptsDirectory (tylko obsługiwane elementy).
-            // 3) Zadbaj o poprawną kolejność i bezpieczeństwo zmian.
-
             IDatabaseUpdater updater = new DatabaseUpdater();
             updater.UpdateDatabase(connectionString, scriptsDirectory);
         }
