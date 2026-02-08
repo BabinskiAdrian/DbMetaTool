@@ -1,5 +1,5 @@
-﻿using System;
-using System.IO;
+﻿using DbMetaTool.Services;
+using DbMetaTool.Services.Interfaces;
 
 namespace DbMetaTool
 {
@@ -86,6 +86,7 @@ namespace DbMetaTool
             // 2) Wczytaj i wykonaj kolejno skrypty z katalogu scriptsDirectory
             //    (tylko domeny, tabele, procedury).
             // 3) Obsłuż błędy i wyświetl raport.
+
             throw new NotImplementedException();
         }
 
@@ -98,7 +99,9 @@ namespace DbMetaTool
             // 1) Połącz się z bazą danych przy użyciu connectionString.
             // 2) Pobierz metadane domen, tabel (z kolumnami) i procedur.
             // 3) Wygeneruj pliki .sql / .json / .txt w outputDirectory.
-            throw new NotImplementedException();
+
+            IMetadataService service = new MetadataService();
+            service.ExportDatabase(connectionString, outputDirectory);
         }
 
         /// <summary>

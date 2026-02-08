@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DbMetaTool": {
+      "commandName": "Project",
+      "commandLineArgs": "export-scripts --connection-string \"User=SYSDBA;Password=senteTask1!;Database=localhost:D:\\Sente\\TestDb.fdb;Dialect=3;Charset=UTF8;\" --output-dir \"C:\\SenteOutput\""
+    }
+  }
+}

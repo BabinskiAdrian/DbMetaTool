@@ -7,4 +7,24 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="SqlQueries\GetAllDomains.sql" />
+    <None Remove="SqlQueries\GetAllProcedures.sql" />
+    <None Remove="SqlQueries\GetAllTables.sql" />
+    <None Remove="SqlQueries\GetProcedureParameters.sql" />
+    <None Remove="SqlQueries\GetTableColumns.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="SqlQueries\GetAllDomains.sql" />
+    <EmbeddedResource Include="SqlQueries\GetAllProcedures.sql" />
+    <EmbeddedResource Include="SqlQueries\GetAllTables.sql" />
+    <EmbeddedResource Include="SqlQueries\GetProcedureParameters.sql" />
+    <EmbeddedResource Include="SqlQueries\GetTableColumns.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.3.4" />
+  </ItemGroup>
+
 </Project>
