@@ -1,24 +1,29 @@
-**DbMetaTool**
+## DbMetaTool - ENG
 
-DbMetaTool to aplikacja konsolowa stworzona w technologii .NET 8.0, służąca do automatyzacji zarządzania schematem bazy danych Firebird 5.0.
+DbMetaTool is a console application built with .NET 8.0, designed to automate the management of Firebird 5.0 database schemas.
 
+## Key Features
 
-**Główne Funkcjonalności**
-* **Eksport metadanych (Export)**: Automatyczne pobieranie definicji domen, tabel oraz procedur składowanych i zapisywanie ich do ustrukturyzowanych plików `.sql`.
-* **Budowanie bazy (Build)**: Inicjalizacja nowej bazy danych Firebird i odtwarzanie pełnej struktury na podstawie zgromadzonych skryptów.
-* **Aktualizacja schematu (Update)**: Inteligentne porównywanie skryptów z istniejącą bazą i aplikowanie zmian (np. dodawanie nowych kolumn lub domen) bez ingerencji w istniejące dane.
+* **Metadata Export (Export)**: Automatically extracts definitions for domains, tables, and stored procedures, saving them into structured `.sql` files.
+* **Database Build (Build)**: Initializes a new Firebird database and recreates the entire structure from the gathered scripts.
+* **Schema Update (Update)**: Intelligently compares scripts with an existing database and applies changes (e.g., adding new columns or domains) without interfering with existing data.
 
+---
 
-**Instrukcja Użycia**
+## Usage Instructions
 
-Aplikacja korzysta z predefiniowanych profilów uruchamiania zawartych w pliku `launchSettings.json`. Zamiast ręcznego wpisywania komend w konsoli, można wybrać odpowiedni tryb prosto z menu debugera:
-1. **Profil Export:** Uruchamia pobieranie aktualnego schematu z bazy źródłowej i generuje pliki SQL. Jest to podstawowy tryb do wersjonowania zmian w strukturze.
-2. **Profil Build:** Służy do testowania poprawności skryptów poprzez stworzenie całkowicie nowej bazy danych i wykonanie na niej wszystkich wyeksportowanych instrukcji.
-3. **Profil Update:** Najbezpieczniejszy tryb synchronizacji, który analizuje istniejącą bazę i aplikuje tylko brakujące elementy struktury (nowe domeny, kolumny), co pozwala na aktualizację środowisk bez utraty danych użytkownika.
+The application uses predefined launch profiles stored in the `launchSettings.json` file. Instead of typing commands manually into the console, you can select the desired mode directly from your IDE's debugger menu:
 
-*Uwaga: Parametry takie jak hasło (domyślnie `masterkey`) oraz ścieżki do plików bazy można szybko dostosować bezpośrednio w pliku `Properties/launchSettings.json`.*
+1.  **Export Profile**: Initiates the extraction of the current schema from the source database and generates SQL files. This is the primary mode for versioning structural changes.
+2.  **Build Profile**: Used to test script integrity by creating a completely new database and executing all exported instructions.
+3.  **Update Profile**: The safest synchronization mode. It analyzes the existing database and applies only missing structural elements (new domains, columns), allowing you to update environments without losing user data.
 
-**Wymagania**
+> **Note:** Parameters such as the password (default: `masterkey`) and database file paths can be quickly adjusted directly in the `Properties/launchSettings.json` file.
+
+---
+
+## Requirements
+
 * **Runtime**: .NET 8.0 SDK.
-* **Baza danych**: Firebird 5.0.
-* **Biblioteki**: FirebirdSql.Data.FirebirdClient.
+* **Database**: Firebird 5.0.
+* **Libraries**: `FirebirdSql.Data.FirebirdClient`.
